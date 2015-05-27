@@ -2,7 +2,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, DateTime, Integer, String
 import sys
 import MySQLdb
 import warnings 
@@ -36,40 +36,76 @@ class Game(Base):
     __tablename__ = 'games'
 
     id = Column(Integer, primary_key=True)
-    status = Column(String(50))
+    
     league = Column(String(50))
-    start = Column(String(50))
-    home = Column(String(50))
-    away = Column(String(50))
-    clock = Column(String(50))
-    away_score = Column(String(50))
-    home_score = Column(String(50))
-    clock_section = Column(String(50))
+    gameCode = Column(Integer)
+    gameStatus = Column(String(50))
+    #gameStartTime = Column(String(50))
+    #gameStartDate = Column(String(50))
+    gameStartDateTime = Column(DateTime)    # ALWAYS EDT in Database!!
+    gameStatus = Column(String(50))
+    gameStatus1 = Column(String(50))
+    gameStatus2 = Column(String(50))
+    gameTV = Column(String(50))
+    gameHref = Column(String(70))
+    
+    awayAlias = Column(String(50))
+    awayScore = Column(Integer)
+    
+    homeAlias = Column(String(50))
+    homeScore = Column(Integer)
 
     def __init__(self, *args, **kwargs):
         if kwargs:
             info  = kwargs.get('info')
 
-            self.status = info['status']
             self.league = info['league'].upper()
-            self.start = info['start']
-            self.home = info['home'].upper()
-            self.away = info['away'].upper()
-            self.clock = info['clock'].upper()
-            self.away_score = info['away-score']
-            self.home_score = info['home-score']
-            self.clock_section = info['clock-section'].upper()
-            self.tv = info['tv'].upper()
+            self.gameCode = info['gameCode']
+            self.gameStatus = info['gameStatus']
+            self.gameStartTime = info['gameStartTime'].replace('Eastern Daylight Time', 'EDT')
+            self.gameStartDate = info['gameStartDate']
+            self.gameStatus = info['gameStatus']
+            self.gameStatus1 = info['gameStatus1']
+            self.gameStatus2 = info['gameStatus2']
+            #month, day = self.gameStartDate.split('/')
+            year = datetime.today().year
+            month = int(self.gameStartDate.split('/')[0])
+            day = int(self.gameStartDate.split('/')[1])
+            hour = int(self.gameStartTime[0:2])
+            minute = int(self.gameStartTime[3:5])
+            self.gameStartDateTime = datetime(year, month, day, hour, minute)
+            
+            self.gameTV = info['gameTV']
+            self.gameHref =  info['gameHref']
+
+            self.homeAlias = info['homeAlias'].upper()
+            if ''==info['homeScore']:
+                self.homeScore = 0
+            else:
+                self.homeScore = info['homeScore']
+                
+            self.awayAlias = info['awayAlias'].upper()
+            if ''==info['awayScore']:
+                self.awayScore = 0
+            else:
+                self.awayScore = info['awayScore']
+
+
     def toString(self):
-            buf = '%s:%s %s:%s, %3s(%2s) @ %3s(%2s) on %s' % (  self.league,
-                                                            self.status,
-                                                            self.start.title(),
-                                                            self.clock_section.title(),
-                                                            self.away,
-                                                            self.away_score,
-                                                            self.home,
-                                                            self.home_score,
-                                                            self.tv)
+            # this works for MLB ... othere ?? we'll try
+            if 'Pre-Game' == self.gameStatus:
+                status='%s @ %s' % (self.gameStartDate, self.gameStartTime)
+            else:
+                status='%s %s' % (self.gameStatus1, self.gameStatus2)
+                
+            buf = '%s, %11s, %16s, %3s(%3s) @ %3s(%3s) on %s' % (  self.league,
+                                                            self.gameStatus,
+                                                            status,
+                                                            self.awayAlias,
+                                                            self.awayScore,
+                                                            self.homeAlias,
+                                                            self.homeScore,
+                                                            self.gameTV)
             return buf
         
 #-------------------------------------------------------------------------------

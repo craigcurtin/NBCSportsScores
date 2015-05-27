@@ -48,69 +48,52 @@ def GameDay(league, yyyymmdd=None):
                 game_tree = ET.XML(game_str)
                 logging.debug(game_str)
 
+                game = {}
+                game['league'] = league.strip()
+                
+                game['gameCode'] = game_tree.get('gamecode')
+                
                 # get all the Game Info data                
                 gamestate_tree = game_tree.find('gamestate')
-                gameStatus = gamestate_tree.get('status')
-                gameTV = gamestate_tree.get('tv')
-                gameStatus = gamestate_tree.get('status')
-                gameStatus1 = gamestate_tree.get('display_status1')
-                gameStatus2 = gamestate_tree.get('display_status2')
-                gameDate = gamestate_tree.get('gamedate')
+                game['gameStatus'] = gamestate_tree.get('status')
+                game['gameTV'] = gamestate_tree.get('tv')
+                game['gameStatus'] = gamestate_tree.get('status')
+                game['gameStatus1'] = gamestate_tree.get('display_status1')
+                game['gameStatus2'] = gamestate_tree.get('display_status2')
+                game['gameStartDate'] = gamestate_tree.get('gamedate')
                 gt = gamestate_tree.get('gametime')
                 struct_time = time.strptime(gt,'%I:%M %p')
-                gameTime = strftime('%H:%M %z', struct_time)
-                gameHref = gamestate_tree.get('href')
+                game['gameStartTime'] = strftime('%H:%M %z', struct_time)
+                game['gameHref'] = gamestate_tree.get('href')
                 
                 # get all the Visiting Team data                
                 visiting_tree = game_tree.find('visiting-team')
-                awayScore = visiting_tree.get('score')
-                awayAlias = visiting_tree.get('alias').strip("#1234567890 ")
-                awayNickname = visiting_tree.get('nickname')
-                awayDisplayName = visiting_tree.get('display_name')
-                awayConference = visiting_tree.get('conference')
-                awayDivision = visiting_tree.get('division')
+                game['awayScore'] = visiting_tree.get('score')
+                game['awayAlias'] = visiting_tree.get('alias').strip("#1234567890 ")
+                game['awayNickname'] = visiting_tree.get('nickname')
+                game['awayDisplayName'] = visiting_tree.get('display_name')
+                game['awayConference'] = visiting_tree.get('conference')
+                game['awayDivision'] = visiting_tree.get('division')
                 # get real-time data if not pregame
-                if "Pre-Game" != gameStatus:
+                if "Pre-Game" != game['gameStatus']:
                     pass
 
                 # get all the Home Team data                
                 home_tree = game_tree.find('home-team')
-                homeScore = home_tree.get('score')
-                homeAlias = home_tree.get('alias').strip("#1234567890 ")
-                homeNickname = home_tree.get('nickname')
-                homeDisplayName = home_tree.get('display_name')
-                homeConference = home_tree.get('conference')
-                homeDivision = home_tree.get('division')
+                game['homeScore'] = home_tree.get('score')
+                game['homeAlias'] = home_tree.get('alias').strip("#1234567890 ")
+                game['homeNickname'] = home_tree.get('nickname')
+                game['homeDisplayName'] = home_tree.get('display_name')
+                game['homeConference'] = home_tree.get('conference')
+                game['homeDivision'] = home_tree.get('division')
                 # get real-time data if not pregame
-                if "Pre-Game" != gameStatus:
+                if "Pre-Game" != game['gameStatus']:
                     pass
                 
                 # write XML data for later reference
-                ofile = "xml\\%s_%s_at_%s_%s.xml" % (league, awayAlias, homeAlias, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+                ofile = "xml\\%s_%s_at_%s_%s.xml" % (game['league'], game['awayAlias'], game['homeAlias'], datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
                 open(ofile,"w").write(game_str)
-
-                game_start = int(time.mktime(time.strptime(\
-                        '%s %s' % (gamestate_tree.get('gametime'), yyyymmdd),\
-                        '%I:%M %p %Y%m%d')))
-                start = datetime.datetime.fromtimestamp(\
-                        game_start,
-                        pytz.timezone('US/Pacific')).strftime('%I:%M %p')
-                        
-                start = utils.localize_game_time(start, env_settings.LOCAL_TZ)
-
-                start = gameTime
                 
-                game = { 'league': league.rstrip(),
-                         'start': start.rstrip(),
-                         'home': homeAlias.rstrip(),
-                         'away': awayAlias.rstrip(),
-                         'home-score': homeScore.rstrip(),
-                         'away-score': awayScore.rstrip(),
-                         'status': gameStatus.rstrip(),
-                         'tv': gameTV.rstrip(),
-                         'clock': gameStatus1.rstrip(),
-                         'clock-section': gameStatus2.rstrip()
-                    }
                 games.append(game)
                 logging.debug(game)
         except Exception, e:

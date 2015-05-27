@@ -16,6 +16,7 @@ from utils import Game
 import env_settings
 import logging
 from time import gmtime, strftime
+from gMail import sendMail
 #import timedelta
 
 #http://www.nbcnews.com/id/34622365
@@ -23,8 +24,23 @@ from time import gmtime, strftime
 URL = "http://scores.nbcsports.msnbc.com" + \
         "/ticker/data/gamesMSNBC.js.asp?jsonp=true&sport=%s&period=%s"
 #-------------------------------------------------------------------------------
+        
+# this class gets
 class DailyGames():
-    '''DailyGames() - Get Games for a specified League on a specific day'''
+    '''DailyGames() - Get Games for a specified League on a specific day
+       
+       Usage: DailyGames(league='MLB') or DailyGames(league='MLB', yyyymmdd='YYYYMMDD')
+       
+       In the first case, you will get all MLB Games for *today()*
+       in the second case, you will get all MLB Games for 'YYYYMMDD'
+       
+       NOTE:  ALL GAME TIMES ARE EASTERN TIME ZONE (DB is also EDT/EST)
+       
+       returned from DailyGames() is a list of Dictionaries with Game Info
+       
+       Supported Leagues are: 'NFL', 'MLB', 'NBA', 'NHL', 'CBK', 'CFB'
+    
+    '''
 
     def __init__(self, league, yyyymmdd=None):
         '''GameDay(league, targetDate [yyyymmdd format)])'''
@@ -78,9 +94,8 @@ class DailyGames():
                 continue
             break
         return games
-    
     def _getGameInfo(self, game_tree, game):
-        '''getGameInfo( XMLtree, gameDictionary)'''
+        '''Private Method:  _getGameInfo( XMLtree, gameDictionary)'''
         # get all the Game Info data                
         gamestate_tree = game_tree.find('gamestate')
         game['gameStatus'] = gamestate_tree.get('status')
@@ -101,6 +116,7 @@ class DailyGames():
         return
         
     def _getAwayInfo(self, game_tree, game):
+        '''Private Method:  _getAwayInfo( XMLtree, gameDictionary)'''
         # get all the Visiting Team data                
         visiting_tree = game_tree.find('visiting-team')
         game['awayScore'] = visiting_tree.get('score')
@@ -109,12 +125,14 @@ class DailyGames():
         game['awayDisplayName'] = visiting_tree.get('display_name')
         game['awayConference'] = visiting_tree.get('conference')
         game['awayDivision'] = visiting_tree.get('division')
+        
         # get real-time data if not pregame
         if "Pre-Game" != game['gameStatus']:
             pass
         return
         
     def _getHomeInfo(self, game_tree, game):
+        '''Private Method:  _getHomeInfo( XMLtree, gameDictionary)'''
         # get all the Home Team data                
         home_tree = game_tree.find('home-team')
         game['homeScore'] = home_tree.get('score')
@@ -123,6 +141,7 @@ class DailyGames():
         game['homeDisplayName'] = home_tree.get('display_name')
         game['homeConference'] = home_tree.get('conference')
         game['homeDivision'] = home_tree.get('division')
+        
         # get real-time data if not pregame
         if "Pre-Game" != game['gameStatus']:
             pass
@@ -130,25 +149,35 @@ class DailyGames():
 #-------------------------------------------------------------------------------
 def main():
 
-    untilDates = []
+    
     SUNDAY=0
+    tillWeekday = datetime.datetime.today().weekday()  # by default only today()
+    
     nextDay=datetime.datetime.today()
     
     # build a List of dates we want Games for 
-    while(SUNDAY != nextDay.weekday()):
+    untilDates = []
+    while(True):
         untilDates.append(nextDay.strftime('%Y%m%d'))
-        nextDay += datetime.timedelta(1)
-        
+        if tillWeekday == nextDay.weekday():
+            break;
+        else:
+            nextDay += datetime.timedelta(1)
+
+    buf=''
     for targetDate in untilDates:
         for league in ['NFL', 'MLB', 'NBA', 'NHL', 'CBK', 'CFB']:
             gd = DailyGames(league, targetDate)
             todays_games = gd.GetAndProcessData()
             for gameInfo in todays_games:
                 game = Game(info=gameInfo)
-                print game.toString()
+                buf += game.toString() + os.linesep
                 utils.session.add(game)
                 utils.session.commit()
             #time.sleep(2)
+    print buf
+    #sendMail('Schuled Games until Sunday', buf)
+    
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":
     logging.basicConfig(filename='get_scores.log', level=logging.DEBUG)

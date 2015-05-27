@@ -67,14 +67,14 @@ class Game(Base):
             self.gameStatus = info['gameStatus']
             self.gameStatus1 = info['gameStatus1']
             self.gameStatus2 = info['gameStatus2']
-            #month, day = self.gameStartDate.split('/')
+            self.gameReason = info['gameReason']    # only when Status == Delayed
+            
             year = datetime.today().year
             month = int(self.gameStartDate.split('/')[0])
             day = int(self.gameStartDate.split('/')[1])
             hour = int(self.gameStartTime[0:2])
             minute = int(self.gameStartTime[3:5])
             self.gameStartDateTime = datetime(year, month, day, hour, minute)
-            
             self.gameTV = info['gameTV']
             self.gameHref =  info['gameHref']
 
@@ -89,16 +89,20 @@ class Game(Base):
                 self.awayScore = 0
             else:
                 self.awayScore = info['awayScore']
-
+        return
 
     def toString(self):
             # this works for MLB ... othere ?? we'll try
-            if 'Pre-Game' == self.gameStatus:
+            if 'Pre-Game'==self.gameStatus:
                 status='%s @ %s' % (self.gameStartDate, self.gameStartTime)
+            elif 'Final'==self.gameStatus:
+                status=self.gameStatus1
+            elif 'Delayed'==self.gameStatus:
+                status=self.gameReason
             else:
                 status='%s %s' % (self.gameStatus1, self.gameStatus2)
                 
-            buf = '%s, %11s, %16s, %3s(%3s) @ %3s(%3s) on %s' % (  self.league,
+            buf='%s, %11s, %16s, %3s(%3s) @ %3s(%3s) on %s' % (  self.league,
                                                             self.gameStatus,
                                                             status,
                                                             self.awayAlias,

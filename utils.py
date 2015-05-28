@@ -21,9 +21,10 @@ user = env_settings.MYSQL_USER
 port = env_settings.MYSQL_PORT
 password = env_settings.MYSQL_PASS
 db_name = env_settings.MYSQL_DB
-
 db_path = "mysql://%s:%s@%s:%s" % (user, password, host, port)
+
 #-------------------------------------------------------------------------------
+
 engine = create_engine(db_path, echo=False)
 engine.execute("CREATE DATABASE IF NOT EXISTS %s" % db_name)
 engine.execute("USE %s" % db_name)
@@ -31,28 +32,25 @@ Base = declarative_base()
 
 Session = sessionmaker(bind=engine)
 session = Session()
+
 #-------------------------------------------------------------------------------
 class Game(Base):
-    __tablename__ = 'games'
-
+    __tablename__ = 'NBCSportsGames'
     id = Column(Integer, primary_key=True)
-    
-    league = Column(String(50))
+    league = Column(String(16))
     gameCode = Column(Integer)
-    gameStatus = Column(String(50))
+    gameStatus = Column(String(32))
     #gameStartTime = Column(String(50))
     #gameStartDate = Column(String(50))
     gameStartDateTime = Column(DateTime)    # ALWAYS EDT in Database!!
-    gameStatus = Column(String(50))
-    gameStatus1 = Column(String(50))
-    gameStatus2 = Column(String(50))
-    gameTV = Column(String(50))
-    gameHref = Column(String(70))
-    
-    awayAlias = Column(String(50))
+    gameStatus = Column(String(64))
+    gameStatus1 = Column(String(64))
+    gameStatus2 = Column(String(64))
+    gameTV = Column(String(16))
+    gameHref = Column(String(128))
+    awayAlias = Column(String(16))
     awayScore = Column(Integer)
-    
-    homeAlias = Column(String(50))
+    homeAlias = Column(String(16))
     homeScore = Column(Integer)
 
     def __init__(self, *args, **kwargs):
@@ -93,23 +91,34 @@ class Game(Base):
 
     def toString(self):
             # this works for MLB ... othere ?? we'll try
-            if 'Pre-Game'==self.gameStatus:
+            if   'Pre-Game'==self.gameStatus:
                 status='%s @ %s' % (self.gameStartDate, self.gameStartTime)
             elif 'Final'==self.gameStatus:
                 status=self.gameStatus1
             elif 'Delayed'==self.gameStatus:
                 status=self.gameReason
             else:
-                status='%s %s' % (self.gameStatus1, self.gameStatus2)
+                try:
+                    # see if gameStatus == 'today()'
+                    month, day = self.gameStatus1.split('/')
+                except:
+                    # if split() fails, force it to the else clause
+                    month=0; day=0
                 
-            buf='%s, %11s, %16s, %3s(%3s) @ %3s(%3s) on %s' % (  self.league,
-                                                            self.gameStatus,
-                                                            status,
-                                                            self.awayAlias,
-                                                            self.awayScore,
-                                                            self.homeAlias,
-                                                            self.homeScore,
-                                                            self.gameTV)
+                if int(month)==datetime.today().month and \
+                    int(day)==datetime.today().day:
+                    status='@ %s' % (self.gameStatus2)
+                else:
+                    status='%s %s' % (self.gameStatus1, self.gameStatus2)
+                
+            buf='%s, %11s, %17s, %3s(%3s) @ %3s(%3s) on %s' % ( self.league,
+                                                                self.gameStatus,
+                                                                status,
+                                                                self.awayAlias,
+                                                                self.awayScore,
+                                                                self.homeAlias,
+                                                                self.homeScore,
+                                                                self.gameTV)
             return buf
         
 #-------------------------------------------------------------------------------

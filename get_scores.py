@@ -16,7 +16,7 @@ from utils import Game
 import env_settings
 import logging
 from time import gmtime, strftime
-from gMail import sendMail
+import MySendMail
 #import timedelta
 
 #http://www.nbcnews.com/id/34622365
@@ -148,22 +148,22 @@ class DailyGames():
         
 #-------------------------------------------------------------------------------
 def main():
-
-    
-    SUNDAY=0
+    SUNDAY=6
+    # use one of the next two lines
     tillWeekday = datetime.datetime.today().weekday()  # by default only today()
+    tillWeekday = SUNDAY
     
     nextDay=datetime.datetime.today()
     
     # build a List of dates we want Games for 
     untilDates = []
     while(True):
-        untilDates.append(nextDay.strftime('%Y%m%d'))
         if tillWeekday == nextDay.weekday():
+            untilDates.append(nextDay.strftime('%Y%m%d'))
             break;
         else:
+            untilDates.append(nextDay.strftime('%Y%m%d'))
             nextDay += datetime.timedelta(1)
-
     buf=''
     for targetDate in untilDates:
         for league in ['NFL', 'MLB', 'NBA', 'NHL', 'CBK', 'CFB']:
@@ -176,7 +176,7 @@ def main():
                 utils.session.commit()
             #time.sleep(2)
     print buf
-    #sendMail('Schuled Games until Sunday', buf)
+    MySendMail.MySendMail('Schuled Games until Sunday', buf)
     
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":
